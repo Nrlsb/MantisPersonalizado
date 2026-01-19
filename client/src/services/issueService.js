@@ -1,18 +1,30 @@
 import { supabase } from '../supabaseClient';
+import { getProfiles } from './userService';
+
+const mapProfilesToIssues = (issues, profiles) => {
+    const profileMap = profiles.reduce((acc, profile) => {
+        acc[profile.id] = profile;
+        return acc;
+    }, {});
+
+    return issues.map(issue => ({
+        ...issue,
+        created_by_profile: profileMap[issue.created_by] || null,
+        assigned_to_profile: profileMap[issue.assigned_to] || null,
+    }));
+};
 
 export const getIssuesByProject = async (projectId) => {
-    const { data, error } = await supabase
+    const { data: issues, error } = await supabase
         .from('issues')
-        .select(`
-      *,
-      created_by_profile:profiles!created_by(email, username),
-      assigned_to_profile:profiles!assigned_to(email, username)
-    `)
+        .select('*')
         .eq('project_id', projectId)
         .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data;
+
+    const profiles = await getProfiles();
+    return mapProfilesToIssues(issues, profiles);
 };
 
 export const createIssue = async (issue) => {
@@ -39,31 +51,30 @@ export const updateIssue = async (id, updates) => {
 };
 
 export const getIssueById = async (id) => {
-    const { data, error } = await supabase
+    const { data: issue, error } = await supabase
         .from('issues')
-        .select(`
-      *,
-      created_by_profile:profiles!created_by(username, email),
-      assigned_to_profile:profiles!assigned_to(username, email)
-    `)
+        .select('*')
         .eq('id', id)
         .single();
 
     if (error) throw error;
-    return data;
+
+    const profiles = await getProfiles();
+    const [enrichedIssue] = mapProfilesToIssues([issue], profiles);
+    return enrichedIssue;
 };
 
 export const getAllIssues = async () => {
-    const { data, error } = await supabase
+    const { data: issues, error } = await supabase
         .from('issues')
         .select(`
         *,
-        project:projects(name),
-        created_by_profile:profiles!created_by(email, username),
-        assigned_to_profile:profiles!assigned_to(email, username)
+        project:projects(name)
       `)
         .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data;
+
+    const profiles = await getProfiles();
+    return mapProfilesToIssues(issues, profiles);
 };
