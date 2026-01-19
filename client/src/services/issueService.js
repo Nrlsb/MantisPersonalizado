@@ -28,9 +28,49 @@ export const getIssuesByProject = async (projectId) => {
 };
 
 export const createIssue = async (issue) => {
+    const { checklistItems, ...issueDataProp } = issue;
+
     const { data, error } = await supabase
         .from('issues')
-        .insert([issue])
+        .insert([issueDataProp])
+        .select()
+        .single();
+
+    if (error) throw error;
+
+    if (checklistItems && checklistItems.length > 0) {
+        const itemsToInsert = checklistItems.map(item => ({
+            issue_id: data.id,
+            content: item,
+            is_completed: false
+        }));
+
+        const { error: checklistError } = await supabase
+            .from('checklist_items')
+            .insert(itemsToInsert);
+
+        if (checklistError) console.error('Error creating checklist items:', checklistError);
+    }
+
+    return data;
+};
+
+export const getChecklistItems = async (issueId) => {
+    const { data, error } = await supabase
+        .from('checklist_items')
+        .select('*')
+        .eq('issue_id', issueId)
+        .order('id', { ascending: true });
+
+    if (error) throw error;
+    return data;
+};
+
+export const toggleChecklistItem = async (itemId, isCompleted) => {
+    const { data, error } = await supabase
+        .from('checklist_items')
+        .update({ is_completed: isCompleted })
+        .eq('id', itemId)
         .select()
         .single();
 

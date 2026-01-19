@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getIssueById, updateIssue } from '../services/issueService';
+import { getIssueById, updateIssue, getChecklistItems, toggleChecklistItem } from '../services/issueService';
 import { getNotesByIssue, createNote } from '../services/noteService';
 import { getProfiles } from '../services/userService';
 import { useAuth } from '../context/AuthContext';
@@ -13,6 +13,7 @@ const IssueDetail = () => {
 
     const [issue, setIssue] = useState(null);
     const [notes, setNotes] = useState([]);
+    const [checklistItems, setChecklistItems] = useState([]);
     const [newNote, setNewNote] = useState('');
     const [loading, setLoading] = useState(true);
     const [profiles, setProfiles] = useState([]);
@@ -32,9 +33,15 @@ const IssueDetail = () => {
                 getIssueById(id),
                 getNotesByIssue(id)
             ]);
+
             setIssue(issueData);
             setEditForm(issueData); // Initialize edit form
             setNotes(notesData);
+
+            if (issueData.issue_type === 'checklist') {
+                const items = await getChecklistItems(id);
+                setChecklistItems(items);
+            }
         } catch (error) {
             console.error('Error fetching issue data:', error);
         } finally {
@@ -78,6 +85,17 @@ const IssueDetail = () => {
             setNewNote('');
         } catch (error) {
             console.error('Error adding note:', error);
+        }
+    };
+
+    const handleToggleChecklistItem = async (itemId, currentStatus) => {
+        try {
+            const updatedItem = await toggleChecklistItem(itemId, !currentStatus);
+            setChecklistItems(prev => prev.map(item =>
+                item.id === itemId ? { ...item, is_completed: updatedItem.is_completed } : item
+            ));
+        } catch (error) {
+            console.error('Error toggling item:', error);
         }
     };
 
@@ -151,9 +169,34 @@ const IssueDetail = () => {
                     {!isEditing ? (
                         <>
                             <h1 className="text-2xl font-bold text-gray-900 mb-4">{issue.title}</h1>
-                            <div className="prose max-w-none text-gray-500 mb-6">
-                                <p className="whitespace-pre-wrap">{issue.description}</p>
-                            </div>
+                            {issue.issue_type === 'standard' ? (
+                                <div className="prose max-w-none text-gray-500 mb-6">
+                                    <p className="whitespace-pre-wrap">{issue.description}</p>
+                                </div>
+                            ) : (
+                                <div className="mb-6">
+                                    <h4 className="text-sm font-medium text-gray-900 mb-3">Lista de Tareas</h4>
+                                    <ul className="space-y-3">
+                                        {checklistItems.map(item => (
+                                            <li key={item.id} className="flex items-start">
+                                                <div className="flex items-center h-5">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={item.is_completed}
+                                                        onChange={() => handleToggleChecklistItem(item.id, item.is_completed)}
+                                                        className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded cursor-pointer"
+                                                    />
+                                                </div>
+                                                <div className="ml-3 text-sm">
+                                                    <span className={`font-medium ${item.is_completed ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
+                                                        {item.content}
+                                                    </span>
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
                         </>
                     ) : (
                         <div className="space-y-4 mb-6">
