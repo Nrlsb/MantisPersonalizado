@@ -248,6 +248,42 @@ const IssueDetail = () => {
                 </div>
             </div>
 
+            {/* Attachments Section */}
+            {(issue.evidence_url || issue.log_url) && (
+                <div className="bg-white shadow sm:rounded-lg overflow-hidden mb-6">
+                    <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
+                        <h3 className="text-lg leading-6 font-medium text-gray-900">
+                            Adjuntos
+                        </h3>
+                    </div>
+                    <div className="px-4 py-5 sm:p-6">
+                        <dl className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+                            {issue.evidence_url && (
+                                <div className="sm:col-span-1">
+                                    <dt className="text-sm font-medium text-gray-500">Evidencia</dt>
+                                    <dd className="mt-1 text-sm text-gray-900">
+                                        <a href={issue.evidence_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-500">
+                                            Ver Imagen
+                                        </a>
+                                        <img src={issue.evidence_url} alt="Evidencia" className="mt-2 max-w-full h-auto rounded-lg shadow-sm" />
+                                    </dd>
+                                </div>
+                            )}
+                            {issue.log_url && (
+                                <div className="sm:col-span-1">
+                                    <dt className="text-sm font-medium text-gray-500">Log</dt>
+                                    <dd className="mt-1 text-sm text-gray-900">
+                                        <a href={issue.log_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-500">
+                                            Descargar Log
+                                        </a>
+                                    </dd>
+                                </div>
+                            )}
+                        </dl>
+                    </div>
+                </div>
+            )}
+
             {/* Notes Section */}
             <div className="bg-white shadow sm:rounded-lg overflow-hidden">
                 <div className="px-4 py-5 sm:px-6 border-b border-gray-200">

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { createIssue } from '../services/issueService';
+import { createIssue, uploadIssueAttachment } from '../services/issueService';
 import { getProfiles } from '../services/userService';
 import { useAuth } from '../context/AuthContext';
 
@@ -20,6 +20,8 @@ const CreateIssue = () => {
 
     const [profiles, setProfiles] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [evidenceFile, setEvidenceFile] = useState(null);
+    const [logFile, setLogFile] = useState(null);
 
     useEffect(() => {
         fetchProfiles();
@@ -44,11 +46,24 @@ const CreateIssue = () => {
         setLoading(true);
 
         try {
+            let evidenceUrl = null;
+            let logUrl = null;
+
+            if (evidenceFile) {
+                evidenceUrl = await uploadIssueAttachment(evidenceFile, 'evidence');
+            }
+
+            if (logFile) {
+                logUrl = await uploadIssueAttachment(logFile, 'logs');
+            }
+
             const issueData = {
                 ...formData,
                 project_id: projectId,
                 created_by: user.id,
                 assigned_to: formData.assigned_to || null,
+                evidence_url: evidenceUrl,
+                log_url: logUrl,
             };
 
             await createIssue(issueData);
@@ -134,6 +149,36 @@ const CreateIssue = () => {
                                 </option>
                             ))}
                         </select>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Evidencia (Imagen)</label>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => setEvidenceFile(e.target.files[0])}
+                            className="mt-1 block w-full text-sm text-gray-500
+                                file:mr-4 file:py-2 file:px-4
+                                file:rounded-md file:border-0
+                                file:text-sm file:font-semibold
+                                file:bg-blue-50 file:text-blue-700
+                                hover:file:bg-blue-100"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Log (Archivo)</label>
+                        <input
+                            type="file"
+                            onChange={(e) => setLogFile(e.target.files[0])}
+                            className="mt-1 block w-full text-sm text-gray-500
+                                file:mr-4 file:py-2 file:px-4
+                                file:rounded-md file:border-0
+                                file:text-sm file:font-semibold
+                                file:bg-blue-50 file:text-blue-700
+                                hover:file:bg-blue-100"
+                        />
                     </div>
                 </div>
 

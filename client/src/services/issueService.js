@@ -78,3 +78,24 @@ export const getAllIssues = async () => {
     const profiles = await getProfiles();
     return mapProfilesToIssues(issues, profiles);
 };
+
+export const uploadIssueAttachment = async (file, folder = 'misc') => {
+    const timestamp = new Date().getTime();
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${timestamp}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+    const filePath = `${folder}/${fileName}`;
+
+    const { error } = await supabase
+        .storage
+        .from('issue-attachments')
+        .upload(filePath, file);
+
+    if (error) throw error;
+
+    const { data } = supabase
+        .storage
+        .from('issue-attachments')
+        .getPublicUrl(filePath);
+
+    return data.publicUrl;
+};
