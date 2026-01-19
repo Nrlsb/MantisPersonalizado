@@ -55,8 +55,8 @@ export const Sidebar = () => {
                         <div className="inline-block h-9 w-9 rounded-full bg-gray-500 flex items-center justify-center text-white">
                             {user?.email?.charAt(0).toUpperCase()}
                         </div>
-                        <div className="ml-3">
-                            <p className="text-sm font-medium text-white group-hover:text-gray-300">
+                        <div className="ml-3 min-w-0">
+                            <p className="text-sm font-medium text-white group-hover:text-gray-300 truncate">
                                 {user?.email}
                             </p>
                             <button
