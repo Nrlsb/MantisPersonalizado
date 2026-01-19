@@ -5,8 +5,8 @@ export const getIssuesByProject = async (projectId) => {
         .from('issues')
         .select(`
       *,
-      created_by_profile:created_by(email, username),
-      assigned_to_profile:assigned_to(email, username)
+      created_by_profile:profiles!created_by(email, username),
+      assigned_to_profile:profiles!assigned_to(email, username)
     `)
         .eq('project_id', projectId)
         .order('created_at', { ascending: false });
@@ -43,8 +43,8 @@ export const getIssueById = async (id) => {
         .from('issues')
         .select(`
       *,
-      created_by_profile:created_by(username, email),
-      assigned_to_profile:assigned_to(username, email)
+      created_by_profile:profiles!created_by(username, email),
+      assigned_to_profile:profiles!assigned_to(username, email)
     `)
         .eq('id', id)
         .single();
@@ -59,8 +59,8 @@ export const getAllIssues = async () => {
         .select(`
         *,
         project:projects(name),
-        created_by_profile:created_by(email, username),
-        assigned_to_profile:assigned_to(email, username)
+        created_by_profile:profiles!created_by(email, username),
+        assigned_to_profile:profiles!assigned_to(email, username)
       `)
         .order('created_at', { ascending: false });
 
