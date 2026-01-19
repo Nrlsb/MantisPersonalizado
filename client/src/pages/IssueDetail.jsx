@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getIssueById, updateIssue, getChecklistItems, toggleChecklistItem } from '../services/issueService';
+import { getIssueById, updateIssue, getChecklistItems, toggleChecklistItem, updateIssueChecklist } from '../services/issueService';
 import { getNotesByIssue, createNote } from '../services/noteService';
 import { getProfiles } from '../services/userService';
 import { useAuth } from '../context/AuthContext';
@@ -21,6 +21,7 @@ const IssueDetail = () => {
     // Edit mode states
     const [isEditing, setIsEditing] = useState(false);
     const [editForm, setEditForm] = useState({});
+    const [editingChecklistItems, setEditingChecklistItems] = useState([]);
 
     useEffect(() => {
         fetchIssueData();
@@ -99,6 +100,29 @@ const IssueDetail = () => {
         }
     };
 
+    const startEditing = () => {
+        setEditForm(issue);
+        if (issue.issue_type === 'checklist') {
+            setEditingChecklistItems([...checklistItems]);
+        }
+        setIsEditing(true);
+    };
+
+    const handleEditChecklistItemChange = (index, value) => {
+        const newItems = [...editingChecklistItems];
+        newItems[index] = { ...newItems[index], content: value };
+        setEditingChecklistItems(newItems);
+    };
+
+    const handleAddEditChecklistItem = () => {
+        setEditingChecklistItems([...editingChecklistItems, { content: '', is_completed: false }]);
+    };
+
+    const handleRemoveEditChecklistItem = (index) => {
+        const newItems = editingChecklistItems.filter((_, i) => i !== index);
+        setEditingChecklistItems(newItems);
+    };
+
     const handleUpdateIssue = async () => {
         try {
             const updated = await updateIssue(id, {
@@ -108,6 +132,14 @@ const IssueDetail = () => {
                 severity: editForm.severity,
                 assigned_to: editForm.assigned_to
             });
+
+            if (issue.issue_type === 'checklist') {
+                // Remove empty items before saving
+                const validItems = editingChecklistItems.filter(item => item.content.trim() !== '');
+                const updatedItems = await updateIssueChecklist(id, validItems);
+                setChecklistItems(updatedItems);
+            }
+
             setIssue(prev => ({ ...prev, ...updated }));
             setIsEditing(false);
         } catch (error) {
@@ -144,7 +176,7 @@ const IssueDetail = () => {
                         </select>
                         {!isEditing ? (
                             <button
-                                onClick={() => setIsEditing(true)}
+                                onClick={startEditing}
                                 className="inline-flex items-center px-3 py-2 border border-blue-600 shadow-sm text-sm leading-4 font-medium rounded-md text-blue-600 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                                 Editar
                             </button>
@@ -209,15 +241,46 @@ const IssueDetail = () => {
                                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                 />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Descripción</label>
-                                <textarea
-                                    rows={4}
-                                    value={editForm.description}
-                                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                />
-                            </div>
+                            {issue.issue_type === 'standard' ? (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Descripción</label>
+                                    <textarea
+                                        rows={4}
+                                        value={editForm.description}
+                                        onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                    />
+                                </div>
+                            ) : (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Editar Lista de Tareas</label>
+                                    {editingChecklistItems.map((item, index) => (
+                                        <div key={index} className="flex mb-2">
+                                            <input
+                                                type="text"
+                                                value={item.content}
+                                                onChange={(e) => handleEditChecklistItemChange(index, e.target.value)}
+                                                placeholder={`Tarea ${index + 1}`}
+                                                className="flex-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemoveEditChecklistItem(index)}
+                                                className="ml-2 bg-red-100 text-red-700 px-3 py-2 rounded-md hover:bg-red-200"
+                                            >
+                                                X
+                                            </button>
+                                        </div>
+                                    ))}
+                                    <button
+                                        type="button"
+                                        onClick={handleAddEditChecklistItem}
+                                        className="mt-2 text-sm text-blue-600 hover:text-blue-500 font-medium"
+                                    >
+                                        + Añadir Tarea
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
 

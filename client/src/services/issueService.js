@@ -139,3 +139,65 @@ export const uploadIssueAttachment = async (file, folder = 'misc') => {
 
     return data.publicUrl;
 };
+
+export const updateIssueChecklist = async (issueId, newItems) => {
+    // 1. Get current items to find deletions
+    const currentItems = await getChecklistItems(issueId);
+    const splitItems = {
+        toUpdate: [],
+        toInsert: [],
+        toDelete: []
+    };
+
+    const newIds = new Set(newItems.filter(i => i.id).map(i => i.id));
+
+    // Find items to delete
+    splitItems.toDelete = currentItems
+        .filter(item => !newIds.has(item.id))
+        .map(item => item.id);
+
+    // Split newItems into update and insert
+    newItems.forEach(item => {
+        if (item.id) {
+            splitItems.toUpdate.push({
+                id: item.id,
+                content: item.content,
+                is_completed: item.is_completed // Preserve or update status
+            });
+        } else {
+            splitItems.toInsert.push({
+                issue_id: issueId,
+                content: item.content,
+                is_completed: false // Default for new items
+            });
+        }
+    });
+
+    // Execute operations
+    if (splitItems.toDelete.length > 0) {
+        const { error } = await supabase
+            .from('checklist_items')
+            .delete()
+            .in('id', splitItems.toDelete);
+        if (error) throw error;
+    }
+
+    if (splitItems.toUpdate.length > 0) {
+        for (const item of splitItems.toUpdate) {
+            const { error } = await supabase
+                .from('checklist_items')
+                .update({ content: item.content, is_completed: item.is_completed })
+                .eq('id', item.id);
+            if (error) throw error;
+        }
+    }
+
+    if (splitItems.toInsert.length > 0) {
+        const { error } = await supabase
+            .from('checklist_items')
+            .insert(splitItems.toInsert);
+        if (error) throw error;
+    }
+
+    return await getChecklistItems(issueId);
+};
